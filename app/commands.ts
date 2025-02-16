@@ -49,6 +49,7 @@ function pwd(args: string[]) {
 }
 
 function cd(args: string[]) {
+  args[0] = args[0].replace("~", process.env.HOME || "");
   try {
     process.chdir(args[0]);
   } catch (err) {
