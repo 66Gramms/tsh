@@ -42,7 +42,7 @@ const type = (input: string) => {
 };
 
 const pathEnv = process.env.PATH || "";
-const paths = pathEnv.split(";");
+const paths = pathEnv.split(":");
 
 rl.prompt();
 
