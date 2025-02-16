@@ -49,5 +49,9 @@ function pwd(args: string[]) {
 }
 
 function cd(args: string[]) {
-  process.chdir(args[0]);
+  try {
+    process.chdir(args[0]);
+  } catch (err) {
+    console.log(`cd: ${args[0]}: No such file or directory`);
+  }
 }
