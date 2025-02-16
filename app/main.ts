@@ -7,5 +7,6 @@ const rl = createInterface({
 
 // Uncomment this block to pass the first stage
 rl.question("$ ", (answer) => {
+  rl.write(`${answer}: command not found`);
   rl.close();
 });
