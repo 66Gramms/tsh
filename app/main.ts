@@ -13,18 +13,38 @@ enum builtIns {
   echo = "echo",
   type = "type",
   exit = "exit",
+  pwd = "pwd",
 }
+
+const echo = (input: string) => {
+  console.log(input);
+};
+
+const type = (input: string) => {
+  if (input in builtIns) {
+    console.log(`${input} is a shell builtin`);
+    return;
+  }
+
+  const programPath = findProgram(input);
+  if (programPath) {
+    console.log(`${input} is ${programPath}`);
+  } else {
+    console.log(`${input}: not found`);
+  }
+};
 
 const exit = (exitCode: number) => {
   rl.close();
   process.exit(exitCode);
 };
 
-const echo = (input: string) => {
-  console.log(input);
+const pwd = () => {
+  console.log(process.cwd());
 };
 
 const findProgram = (command: string): string | null => {
+  const paths = (process.env.PATH || "").split(":");
   for (const dir of paths) {
     const fullPath = join(dir, command);
     if (existsSync(fullPath) && statSync(fullPath).isFile()) {
@@ -43,23 +63,6 @@ const runProgramIfExists = (command: string, args: string[]): boolean => {
   return false;
 };
 
-const type = (input: string) => {
-  if (input in builtIns) {
-    console.log(`${input} is a shell builtin`);
-    return;
-  }
-
-  const programPath = findProgram(input);
-  if (programPath) {
-    console.log(`${input} is ${programPath}`);
-  } else {
-    console.log(`${input}: not found`);
-  }
-};
-
-const pathEnv = process.env.PATH || "";
-const paths = pathEnv.split(":");
-
 rl.prompt();
 
 rl.on("line", (input) => {
@@ -72,6 +75,8 @@ rl.on("line", (input) => {
     echo(args.join(" "));
   } else if (command === builtIns.type) {
     type(args[0]);
+  } else if (command === builtIns.pwd) {
+    pwd();
   } else if (!runProgramIfExists(command, args)) {
     console.log(`${command}: command not found`);
   }
