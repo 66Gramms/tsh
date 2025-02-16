@@ -7,6 +7,7 @@ export function RegisterBuiltInCommands() {
   Commands.set(BuiltInCommands.type, type);
   Commands.set(BuiltInCommands.exit, exit);
   Commands.set(BuiltInCommands.pwd, pwd);
+  Commands.set(BuiltInCommands.cd, cd);
 }
 
 enum BuiltInCommands {
@@ -14,6 +15,7 @@ enum BuiltInCommands {
   type = "type",
   exit = "exit",
   pwd = "pwd",
+  cd = "cd",
 }
 
 function echo(args: string[]) {
@@ -42,6 +44,10 @@ function exit(args: string[]) {
   process.exit(exitCode);
 }
 
-function pwd() {
+function pwd(args: string[]) {
   console.log(process.cwd());
+}
+
+function cd(args: string[]) {
+  process.chdir(args[0]);
 }
