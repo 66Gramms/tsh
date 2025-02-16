@@ -1,7 +1,7 @@
 import { createInterface } from "readline";
 import { existsSync, statSync } from "fs";
 import { join } from "path";
-import childProcess, { ChildProcess } from "child_process";
+import { execSync } from "child_process";
 
 const rl = createInterface({
   input: process.stdin,
@@ -57,18 +57,18 @@ rl.on("line", (input) => {
   } else if (command === builtIns.type) {
     type(args[0]);
   } else {
-    let child: ChildProcess | null = null;
+    let result: Buffer<ArrayBufferLike> | null = null;
+    let programExists = false;
     for (const dir of paths) {
-      const fullPath = join(dir, input);
-      if (existsSync(fullPath) && statSync(fullPath).isFile()) {
-        child = childProcess.spawn(fullPath, args, {
-          stdio: "inherit",
-        });
+      const fullPath = join(dir, command);
+      programExists = existsSync(fullPath) && statSync(fullPath).isFile();
+      if (programExists) {
+        result = execSync(`${command} ${args.join(" ")}`, { stdio: "inherit" });
         break;
       }
     }
 
-    if (!child) console.log(`${command}: command not found`);
+    if (!programExists) console.log(`${command}: command not found`);
   }
 
   rl.prompt();
