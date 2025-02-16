@@ -12,21 +12,42 @@ enum builtIns {
   exit = "exit",
 }
 
-// Uncomment this block to pass the first stage
+const exit = () => {
+  rl.close();
+  process.exit(0);
+};
+
+const echo = (input: string) => {
+  console.log(input.slice(5));
+};
+
+const type = (input: string) => {
+  let binPath = "";
+  paths.find((path) => {
+    if (path.split("/").includes(input.slice(5))) {
+      binPath = path;
+      return true;
+    }
+  });
+  if (binPath) {
+    console.log(`${input.slice(5)} is ${binPath}`);
+  } else {
+    console.log(`${input.slice(5)}: not found`);
+  }
+};
+
+const pathEnv = process.env.PATH;
+const paths = pathEnv?.split(":") || [];
+
 rl.prompt();
 
 rl.on("line", (input) => {
   if (input.startsWith(builtIns.exit)) {
-    rl.close();
-    process.exit(0);
+    exit();
   } else if (input.startsWith(builtIns.echo)) {
-    console.log(input.slice(5));
+    echo(input.slice(5));
   } else if (input.startsWith(builtIns.type)) {
-    if (input.slice(5) in builtIns) {
-      console.log(`${input.slice(5)} is a shell builtin`);
-    } else {
-      console.log(`${input.slice(5)}: not found`);
-    }
+    type(input);
   } else {
     console.log(`${input}: command not found`);
   }
