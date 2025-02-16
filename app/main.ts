@@ -24,21 +24,37 @@ const echo = (input: string) => {
   console.log(input);
 };
 
+const findProgram = (command: string): string | null => {
+  for (const dir of paths) {
+    const fullPath = join(dir, command);
+    if (existsSync(fullPath) && statSync(fullPath).isFile()) {
+      return fullPath;
+    }
+  }
+  return null;
+};
+
+const runProgramIfExists = (command: string, args: string[]): boolean => {
+  const programPath = findProgram(command);
+  if (programPath) {
+    execSync(`${command} ${args.join(" ")}`, { stdio: "inherit" });
+    return true;
+  }
+  return false;
+};
+
 const type = (input: string) => {
   if (input in builtIns) {
     console.log(`${input} is a shell builtin`);
     return;
   }
 
-  for (const dir of paths) {
-    const fullPath = join(dir, input);
-    if (existsSync(fullPath) && statSync(fullPath).isFile()) {
-      console.log(`${input} is ${fullPath}`);
-      return;
-    }
+  const programPath = findProgram(input);
+  if (programPath) {
+    console.log(`${input} is ${programPath}`);
+  } else {
+    console.log(`${input}: not found`);
   }
-
-  console.log(`${input}: not found`);
 };
 
 const pathEnv = process.env.PATH || "";
@@ -56,19 +72,8 @@ rl.on("line", (input) => {
     echo(args.join(" "));
   } else if (command === builtIns.type) {
     type(args[0]);
-  } else {
-    let result: Buffer<ArrayBufferLike> | null = null;
-    let programExists = false;
-    for (const dir of paths) {
-      const fullPath = join(dir, command);
-      programExists = existsSync(fullPath) && statSync(fullPath).isFile();
-      if (programExists) {
-        result = execSync(`${command} ${args.join(" ")}`, { stdio: "inherit" });
-        break;
-      }
-    }
-
-    if (!programExists) console.log(`${command}: command not found`);
+  } else if (!runProgramIfExists(command, args)) {
+    console.log(`${command}: command not found`);
   }
 
   rl.prompt();
