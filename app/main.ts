@@ -24,6 +24,8 @@ rl.on("line", (input) => {
   } else if (input.startsWith(builtIns.type)) {
     if (input.slice(5) in builtIns) {
       console.log(`${input.slice(5)} is a shell builtin`);
+    } else {
+      console.log(`${input.slice(5)}: command not found`);
     }
   } else {
     console.log(`${input}: command not found`);
