@@ -14,34 +14,30 @@ enum builtIns {
   exit = "exit",
 }
 
-const exit = () => {
+const exit = (exitCode: number) => {
   rl.close();
-  process.exit(0);
+  process.exit(exitCode);
 };
 
 const echo = (input: string) => {
-  console.log(input.slice(5));
+  console.log(input);
 };
 
 const type = (input: string) => {
-  const command = input.slice(5);
-
-  // Check if command is a shell builtin
-  if (builtIns[command as keyof typeof builtIns]) {
-    console.log(`${command} is a shell builtin`);
+  if (input in builtIns) {
+    console.log(`${input} is a shell builtin`);
     return;
   }
 
-  // Search for the command in each directory in PATH
   for (const dir of paths) {
-    const fullPath = join(dir, command);
+    const fullPath = join(dir, input);
     if (existsSync(fullPath) && statSync(fullPath).isFile()) {
-      console.log(`${command} is ${fullPath}`);
+      console.log(`${input} is ${fullPath}`);
       return;
     }
   }
 
-  console.log(`${command}: not found`);
+  console.log(`${input}: not found`);
 };
 
 const pathEnv = process.env.PATH || "";
@@ -50,12 +46,15 @@ const paths = pathEnv.split(":");
 rl.prompt();
 
 rl.on("line", (input) => {
-  if (input.startsWith(builtIns.exit)) {
-    exit();
-  } else if (input.startsWith(builtIns.echo)) {
-    echo(input.slice(5));
-  } else if (input.startsWith(builtIns.type)) {
-    type(input);
+  const command = input.split(" ")[0];
+  const args = input.split(" ").slice(1);
+
+  if (command === builtIns.exit) {
+    exit(args[0] ? parseInt(args[0]) : 0);
+  } else if (command === builtIns.echo) {
+    echo(args.join(" "));
+  } else if (command === builtIns.type) {
+    type(args[0]);
   } else {
     console.log(`${input}: command not found`);
   }
