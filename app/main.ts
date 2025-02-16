@@ -1,4 +1,6 @@
 import { createInterface } from "readline";
+import { existsSync, statSync } from "fs";
+import { join } from "path";
 
 const rl = createInterface({
   input: process.stdin,
@@ -22,22 +24,28 @@ const echo = (input: string) => {
 };
 
 const type = (input: string) => {
-  let binPath = "";
-  paths.find((path) => {
-    if (path.split("/").includes(input.slice(5))) {
-      binPath = path;
-      return true;
-    }
-  });
-  if (binPath) {
-    console.log(`${input.slice(5)} is ${binPath}`);
-  } else {
-    console.log(`${input.slice(5)}: not found`);
+  const command = input.slice(5);
+
+  // Check if command is a shell builtin
+  if (builtIns[command as keyof typeof builtIns]) {
+    console.log(`${command} is a shell builtin`);
+    return;
   }
+
+  // Search for the command in each directory in PATH
+  for (const dir of paths) {
+    const fullPath = join(dir, command);
+    if (existsSync(fullPath) && statSync(fullPath).isFile()) {
+      console.log(`${command} is ${fullPath}`);
+      return;
+    }
+  }
+
+  console.log(`${command}: not found`);
 };
 
-const pathEnv = process.env.PATH;
-const paths = pathEnv?.split(":") || [];
+const pathEnv = process.env.PATH || "";
+const paths = pathEnv.split(":");
 
 rl.prompt();
 
