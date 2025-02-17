@@ -1,3 +1,4 @@
+import { match } from "assert";
 import { FindProgram } from "./helpers";
 
 export const Commands: Map<string, (args: string[]) => void> = new Map();

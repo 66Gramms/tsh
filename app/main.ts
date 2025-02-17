@@ -1,6 +1,6 @@
 import { createInterface } from "readline";
 import { Commands, RegisterBuiltInCommands } from "./commands";
-import { RunProgramIfExists } from "./helpers";
+import { PreprocessArgs, RunProgramIfExists } from "./helpers";
 
 RegisterBuiltInCommands();
 
@@ -14,12 +14,13 @@ rl.prompt();
 
 rl.on("line", (input) => {
   const command = input.split(" ")[0];
-  const args = input.split(" ").slice(1);
+  const args = input.split(" ").slice(1).join(" ");
 
+  const processedArgs = PreprocessArgs(args);
   const commandToRun = Commands.get(command);
   if (commandToRun) {
-    commandToRun(args);
-  } else if (!RunProgramIfExists(command, args)) {
+    commandToRun(processedArgs);
+  } else if (!RunProgramIfExists(command, processedArgs)) {
     console.log(`${command}: command not found`);
   }
 
