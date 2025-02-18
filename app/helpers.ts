@@ -25,23 +25,8 @@ export function RunProgramIfExists(command: string, args: string[]): boolean {
 }
 
 export function PreprocessArgs(input: string): string[] {
-  const processedArgs: string[] = [];
-  const regexp = /'([^']*)'(?:'([^']*)')*/g;
-  const matches = [...input.matchAll(regexp)];
-  matches.forEach((match) => {
-    processedArgs.push(match[0].replaceAll("'", ""));
-    input = input.replace(match[0], "");
-  });
-
-  input.split(" ").forEach((arg) => {
-    if (arg === "") {
-      return;
-    }
-    if (arg.startsWith("~")) {
-      arg = arg.replace("~", process.env.HOME || "~");
-    }
-    processedArgs.push(arg);
-  });
+  var parse = require("shell-quote/parse");
+  var processedArgs: string[] = parse(input);
 
   return processedArgs;
 }
