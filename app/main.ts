@@ -13,14 +13,14 @@ const rl = createInterface({
 rl.prompt();
 
 rl.on("line", (input) => {
-  const command = input.split(" ")[0];
-  const args = input.split(" ").slice(1).join(" ");
+  const args = PreprocessArgs(input);
+  const command = args[0];
+  args.shift();
 
-  const processedArgs = PreprocessArgs(args);
   const commandToRun = Commands.get(command);
   if (commandToRun) {
-    commandToRun(processedArgs);
-  } else if (!RunProgramIfExists(command, processedArgs)) {
+    commandToRun(args);
+  } else if (!RunProgramIfExists(command, args)) {
     console.log(`${command}: command not found`);
   }
 
