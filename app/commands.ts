@@ -1,6 +1,9 @@
-import { FindProgram } from "./helpers";
+import { FakeStdout, FindProgram } from "./helpers";
 
-export const Commands: Map<string, (args: string[]) => void> = new Map();
+export const Commands: Map<
+  string,
+  (args: string[], redirectTo?: string, appendMode?: boolean) => void
+> = new Map();
 
 export function RegisterBuiltInCommands() {
   Commands.set(BuiltInCommands.echo, echo);
@@ -18,25 +21,25 @@ enum BuiltInCommands {
   cd = "cd",
 }
 
-function echo(args: string[]) {
-  console.log(args.join(" "));
+function echo(args: string[], redirectTo?: string, appendMode?: boolean) {
+  FakeStdout(args.join(" "), redirectTo, appendMode);
 }
 
-function type(args: string[]) {
+function type(args: string[], redirectTo?: string, appendMode?: boolean) {
   if (Commands.has(args[0])) {
-    console.log(`${args[0]} is a shell builtin`);
+    FakeStdout(`${args[0]} is a shell builtin`, redirectTo, appendMode);
     return;
   }
 
   const programPath = FindProgram(args[0]);
   if (programPath) {
-    console.log(`${args[0]} is ${programPath}`);
+    FakeStdout(`${args[0]} is ${programPath}`);
   } else {
-    console.log(`${args[0]}: not found`);
+    FakeStdout(`${args[0]}: not found`);
   }
 }
 
-function exit(args: string[]) {
+function exit(args: string[], redirectTo?: string, appendMode?: boolean) {
   const exitCode = parseInt(args[0]);
   if (isNaN(exitCode)) {
     process.exit(0);
@@ -44,15 +47,19 @@ function exit(args: string[]) {
   process.exit(exitCode);
 }
 
-function pwd(args: string[]) {
-  console.log(process.cwd());
+function pwd(args: string[], redirectTo?: string, appendMode?: boolean) {
+  FakeStdout(process.cwd(), redirectTo, appendMode);
 }
 
-function cd(args: string[]) {
+function cd(args: string[], redirectTo?: string, appendMode?: boolean) {
   args[0] = args[0].replace("~", process.env.HOME || "");
   try {
     process.chdir(args[0]);
   } catch (err) {
-    console.log(`cd: ${args[0]}: No such file or directory`);
+    FakeStdout(
+      `cd: ${args[0]}: No such file or directory`,
+      redirectTo,
+      appendMode
+    );
   }
 }

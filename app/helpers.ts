@@ -1,6 +1,7 @@
-import { spawnSync } from "child_process";
+import { spawn, spawnSync, SpawnSyncReturns } from "child_process";
 import { existsSync, statSync } from "fs";
 import { join } from "path";
+import * as fs from "fs";
 
 var pathSeparator = process.platform === "win32" ? ";" : ":";
 
@@ -15,18 +16,57 @@ export function FindProgram(command: string): string | null {
   return null;
 }
 
-export function RunProgramIfExists(command: string, args: string[]): boolean {
+export function RunProgramIfExists(
+  command: string,
+  args: string[],
+  inputFile: string,
+  outputFile: string,
+  appendMode: boolean
+): boolean {
   const programPath = FindProgram(command);
   if (programPath) {
-    spawnSync(command, args, { stdio: "inherit" });
+    let readFile: Buffer | null = null;
+    if (inputFile) {
+      readFile = fs.readFileSync(inputFile);
+    }
+
+    let childInput = readFile?.toString() ?? "";
+    const child = spawnSync(command, args, {
+      stdio: ["inherit", "pipe", "pipe"],
+      input: childInput,
+      timeout: undefined,
+    });
+
+    const { stdout, stderr } = child;
+    if (outputFile) {
+      fs.writeFileSync(outputFile, stdout, { flag: appendMode ? "a" : "w" });
+    } else {
+      console.log(stdout.toString().trim());
+    }
+
     return true;
   }
   return false;
 }
 
-export function PreprocessArgs(input: string): string[] {
+export function PreprocessArgs(input: string): [string | { op: string }] {
   var parse = require("shell-quote/parse");
-  var processedArgs: string[] = parse(input);
+  var processedArgs: [string | { op: string }] = parse(input);
 
   return processedArgs;
+}
+
+export function FakeStdout(
+  input: string,
+  redirectTo?: string,
+  appendMode?: boolean
+): void {
+  if (!redirectTo) {
+    console.log(input);
+    return;
+  }
+
+  fs.writeFileSync(redirectTo, input, {
+    flag: appendMode ? "a" : "w",
+  });
 }

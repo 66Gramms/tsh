@@ -1,6 +1,7 @@
 import { createInterface } from "readline";
 import { Commands, RegisterBuiltInCommands } from "./commands";
 import { PreprocessArgs, RunProgramIfExists } from "./helpers";
+import { Operator } from "./types";
 
 RegisterBuiltInCommands();
 
@@ -14,15 +15,55 @@ rl.prompt();
 
 rl.on("line", (input) => {
   const args = PreprocessArgs(input);
-  const command = args[0];
+  const command = args[0] as string;
   args.shift();
+  let commandToRun = Commands.get(command);
 
-  const commandToRun = Commands.get(command);
-  if (commandToRun) {
-    commandToRun(args);
-  } else if (!RunProgramIfExists(command, args)) {
-    console.log(`${command}: command not found`);
+  let inputFile = "";
+  let outputFile = "";
+  let appendMode = false;
+  const filteredArgs: string[] = [];
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    const operator = (arg as Operator).op;
+
+    if (operator) {
+      switch (operator) {
+        case ">":
+          outputFile = args[i + 1] as string;
+          i++;
+          break;
+        case ">>":
+          outputFile = args[i + 1] as string;
+          appendMode = true;
+          i++;
+          break;
+        case "<":
+          inputFile = args[i + 1] as string;
+          i++;
+          break;
+        default:
+          break;
+      }
+    } else {
+      filteredArgs.push(arg as string);
+    }
   }
 
+  if (commandToRun) {
+    commandToRun(filteredArgs, outputFile, appendMode);
+  } else {
+    const result = RunProgramIfExists(
+      command,
+      filteredArgs,
+      inputFile,
+      outputFile,
+      appendMode
+    );
+    if (!result) {
+      console.log(`${command}: command not found`);
+    }
+  }
   rl.prompt();
 });
