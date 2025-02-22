@@ -29,6 +29,12 @@ rl.on("line", (input) => {
     const operator = (arg as Operator).op;
 
     if (operator) {
+      const fileDescriptor = parseInt(args[i - 1] as string);
+      if (!isNaN(fileDescriptor))
+        filteredArgs.splice(
+          filteredArgs.findIndex((arg) => arg === args[i - 1]),
+          1
+        );
       switch (operator) {
         case ">":
           outputFile = args[i + 1] as string;

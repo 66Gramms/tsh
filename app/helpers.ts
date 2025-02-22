@@ -40,6 +40,8 @@ export function RunProgramIfExists(
     const { stdout, stderr } = child;
     if (outputFile) {
       fs.writeFileSync(outputFile, stdout, { flag: appendMode ? "a" : "w" });
+      const errors = stderr.toString();
+      if (errors) console.log(errors.trim());
     } else {
       console.log(stdout.toString().trim());
     }
