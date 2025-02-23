@@ -1,7 +1,7 @@
 import { createInterface } from "readline";
 import { Commands, RegisterBuiltInCommands } from "./commands";
 import { PreprocessArgs, RunProgramIfExists } from "./helpers";
-import { Operator } from "./types";
+import { Operator, Redirection } from "./types";
 
 RegisterBuiltInCommands();
 
@@ -20,8 +20,11 @@ rl.on("line", (input) => {
   let commandToRun = Commands.get(command);
 
   let inputFile = "";
-  let outputFile = "";
-  let appendMode = false;
+  let redirection: Redirection = {
+    outputFile: "",
+    appendMode: false,
+    fileDescriptor: 1,
+  };
   const filteredArgs: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -30,19 +33,21 @@ rl.on("line", (input) => {
 
     if (operator) {
       const fileDescriptor = parseInt(args[i - 1] as string);
-      if (!isNaN(fileDescriptor))
+      if (!isNaN(fileDescriptor)) {
+        redirection.fileDescriptor = fileDescriptor;
         filteredArgs.splice(
           filteredArgs.findIndex((arg) => arg === args[i - 1]),
           1
         );
+      }
       switch (operator) {
         case ">":
-          outputFile = args[i + 1] as string;
+          redirection.outputFile = args[i + 1] as string;
           i++;
           break;
         case ">>":
-          outputFile = args[i + 1] as string;
-          appendMode = true;
+          redirection.outputFile = args[i + 1] as string;
+          redirection.appendMode = true;
           i++;
           break;
         case "<":
@@ -57,15 +62,15 @@ rl.on("line", (input) => {
     }
   }
 
+  // console.log("filteredArgs", filteredArgs);
   if (commandToRun) {
-    commandToRun(filteredArgs, outputFile, appendMode);
+    commandToRun(filteredArgs, redirection);
   } else {
     const result = RunProgramIfExists(
       command,
       filteredArgs,
       inputFile,
-      outputFile,
-      appendMode
+      redirection
     );
     if (!result) {
       console.log(`${command}: command not found`);

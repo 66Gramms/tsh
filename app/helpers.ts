@@ -1,7 +1,8 @@
-import { spawn, spawnSync, SpawnSyncReturns } from "child_process";
+import { spawnSync } from "child_process";
 import { existsSync, statSync } from "fs";
 import { join } from "path";
 import * as fs from "fs";
+import { Redirection } from "./types";
 
 var pathSeparator = process.platform === "win32" ? ";" : ":";
 
@@ -20,8 +21,7 @@ export function RunProgramIfExists(
   command: string,
   args: string[],
   inputFile: string,
-  outputFile: string,
-  appendMode: boolean
+  redirection: Redirection
 ): boolean {
   const programPath = FindProgram(command);
   if (programPath) {
@@ -38,10 +38,20 @@ export function RunProgramIfExists(
     });
 
     const { stdout, stderr } = child;
-    if (outputFile) {
-      fs.writeFileSync(outputFile, stdout, { flag: appendMode ? "a" : "w" });
+    if (redirection.outputFile) {
+      fs.writeFileSync(
+        redirection.outputFile,
+        redirection.fileDescriptor === 1 ? stdout : stderr,
+        {
+          flag: redirection.appendMode ? "a" : "w",
+        }
+      );
       const errors = stderr.toString();
-      if (errors) console.log(errors.trim());
+      if (errors && redirection.fileDescriptor !== 2)
+        console.log(errors.trim());
+      if (redirection.fileDescriptor !== 1 && stdout.toString().trim()) {
+        console.log(stdout.toString().trim());
+      }
     } else {
       console.log(stdout.toString().trim());
     }
@@ -60,15 +70,25 @@ export function PreprocessArgs(input: string): [string | { op: string }] {
 
 export function FakeStdout(
   input: string,
-  redirectTo?: string,
-  appendMode?: boolean
+  outputRedirection?: Redirection
 ): void {
-  if (!redirectTo) {
+  if (
+    outputRedirection?.fileDescriptor !== 1 ||
+    !outputRedirection ||
+    !outputRedirection.outputFile
+  ) {
     console.log(input);
-    return;
   }
 
-  fs.writeFileSync(redirectTo, input, {
-    flag: appendMode ? "a" : "w",
-  });
+  if (outputRedirection?.fileDescriptor === 1 && outputRedirection.outputFile) {
+    fs.writeFileSync(outputRedirection.outputFile, input + "\n", {
+      flag: outputRedirection.appendMode ? "a" : "w",
+    });
+  }
+  if (
+    outputRedirection?.fileDescriptor !== 1 &&
+    outputRedirection?.outputFile
+  ) {
+    fs.closeSync(fs.openSync(outputRedirection?.outputFile ?? "", "w"));
+  }
 }
