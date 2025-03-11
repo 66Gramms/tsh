@@ -26,7 +26,6 @@ export function RunProgramIfExists(
   return new Promise((resolve, reject) => {
     const programPath = FindProgram(command);
     if (!programPath) {
-      console.error(`Command not found: ${command}`);
       return resolve(false);
     }
 
@@ -45,7 +44,7 @@ export function RunProgramIfExists(
 
     child.stdout.on("data", (data) => {
       stdoutData += data.toString();
-      if (!redirection.outputFile) {
+      if (redirection.fileDescriptor !== 1) {
         process.stdout.write(data);
       }
     });
@@ -67,11 +66,11 @@ export function RunProgramIfExists(
           }
         );
       }
-      resolve(code === 0);
+      resolve(true);
     });
 
     child.on("error", (err) => {
-      console.error(`Error running ${command}:`, err);
+      process.stderr.write(`Error running ${command}: ${err}`);
       reject(err);
     });
   });
@@ -96,7 +95,7 @@ export const ProcessArgs = (
   let redirection: Redirection = {
     outputFile: "",
     appendMode: false,
-    fileDescriptor: 1,
+    fileDescriptor: -1,
   };
   const filteredArgs: string[] = [];
 
@@ -112,6 +111,8 @@ export const ProcessArgs = (
           filteredArgs.findIndex((arg) => arg === args[i - 1]),
           1
         );
+      } else {
+        redirection.fileDescriptor = 1;
       }
       switch (operator) {
         case ">":
