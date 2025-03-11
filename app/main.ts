@@ -4,10 +4,18 @@ import { PreprocessArgs, ProcessArgs, RunProgramIfExists } from "./helpers";
 
 RegisterBuiltInCommands();
 
+function handleCompletion(line: string) {
+  const matches = Array.from(Commands.keys())
+    .filter((command) => command.startsWith(line))
+    .map((input) => `${input} `);
+  return [matches, line];
+}
+
 const rl = createInterface({
   input: process.stdin,
   output: process.stdout,
   prompt: "$ ",
+  completer: handleCompletion,
 });
 
 rl.prompt();
