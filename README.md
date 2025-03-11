@@ -11,8 +11,7 @@ A POSIX compliant shell made in typescript. Capabilities include
 # How to run
 
 1. Ensure you have `bun (1.1)` installed locally
-1. Run `./your_program.sh` to run your program, which is implemented in
-   `app/main.ts`.
+1. Run `./your_program.sh`
 1. Commit your changes and run `git push origin master` to submit your solution
    to CodeCrafters. Test output will be streamed to your terminal.
 
