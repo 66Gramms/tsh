@@ -3,11 +3,10 @@ import { existsSync, statSync } from "fs";
 import { join } from "path";
 import * as fs from "fs";
 import { Operator, Redirection } from "./types";
-
-var pathSeparator = process.platform === "win32" ? ";" : ":";
+import { PATH_SEPARATOR } from "./consts";
 
 export function FindProgram(command: string): string | null {
-  const paths = (process.env.PATH || "").split(pathSeparator);
+  const paths = (process.env.PATH || "").split(PATH_SEPARATOR);
   for (const dir of paths) {
     const fullPath = join(dir, command);
     if (existsSync(fullPath) && statSync(fullPath).isFile()) {

@@ -1,6 +1,8 @@
 import { createInterface } from "readline";
 import { Commands, RegisterBuiltInCommands } from "./commands";
 import { PreprocessArgs, ProcessArgs, RunProgramIfExists } from "./helpers";
+import * as fs from "fs";
+import { PATH_SEPARATOR } from "./consts";
 
 const rl = createInterface({
   input: process.stdin,
@@ -14,10 +16,25 @@ function handleCompletion(line: string) {
     .filter((command) => command.startsWith(line))
     .map((input) => `${input} `);
 
-  if (!matches.length) {
-    process.stdout.write("\u0007"); //Ring bell
+  const executables: string[] = [];
+  for (const dir of (process.env.PATH || "").split(PATH_SEPARATOR)) {
+    try {
+      const files = fs.readdirSync(dir);
+      executables.push(
+        ...files
+          .filter((file) => file.startsWith(line))
+          .map((input) => `${input} `)
+      );
+    } catch (err) {
+      // Ignore errors (e.g., if a path does not exist)
+    }
   }
-  return [matches, line];
+
+  if (!matches.length && !executables.length) {
+    process.stdout.write("\u0007"); // Ring bell if no matches
+  }
+
+  return [[...matches, ...executables], line];
 }
 
 RegisterBuiltInCommands();
