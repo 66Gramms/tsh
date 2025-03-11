@@ -1,4 +1,4 @@
-import { spawnSync } from "child_process";
+import { spawn } from "child_process";
 import { existsSync, statSync } from "fs";
 import { join } from "path";
 import * as fs from "fs";
@@ -22,43 +22,59 @@ export function RunProgramIfExists(
   args: string[],
   inputFile: string,
   redirection: Redirection
-): boolean {
-  const programPath = FindProgram(command);
-  if (programPath) {
-    let readFile: Buffer | null = null;
-    if (inputFile) {
-      readFile = fs.readFileSync(inputFile);
+): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const programPath = FindProgram(command);
+    if (!programPath) {
+      console.error(`Command not found: ${command}`);
+      return resolve(false);
     }
 
-    let childInput = readFile?.toString() ?? "";
-    const child = spawnSync(command, args, {
-      stdio: ["inherit", "pipe", "pipe"],
-      input: childInput,
-      timeout: undefined,
+    const child = spawn(command, args, {
+      stdio: ["pipe", "pipe", "pipe"], // Allow piping
     });
 
-    const { stdout, stderr } = child;
-    if (redirection.outputFile) {
-      fs.writeFileSync(
-        redirection.outputFile,
-        redirection.fileDescriptor === 1 ? stdout : stderr,
-        {
-          flag: redirection.appendMode ? "a" : "w",
-        }
-      );
-      const errors = stderr.toString();
-      if (errors && redirection.fileDescriptor !== 2)
-        console.log(errors.trim());
-      if (redirection.fileDescriptor !== 1 && stdout.toString().trim()) {
-        console.log(stdout.toString().trim());
-      }
-    } else {
-      console.log(stdout.toString().trim());
+    if (inputFile) {
+      const inputData = require("fs").readFileSync(inputFile);
+      child.stdin.write(inputData);
+      child.stdin.end();
     }
 
-    return true;
-  }
-  return false;
+    let stdoutData = "";
+    let stderrData = "";
+
+    child.stdout.on("data", (data) => {
+      stdoutData += data.toString();
+      if (!redirection.outputFile) {
+        process.stdout.write(data);
+      }
+    });
+
+    child.stderr.on("data", (data) => {
+      stderrData += data.toString();
+      if (redirection.fileDescriptor !== 2) {
+        process.stderr.write(data);
+      }
+    });
+
+    child.on("close", (code) => {
+      if (redirection.outputFile) {
+        fs.writeFileSync(
+          redirection.outputFile,
+          redirection.fileDescriptor === 1 ? stdoutData : stderrData,
+          {
+            flag: redirection.appendMode ? "a" : "w",
+          }
+        );
+      }
+      resolve(code === 0);
+    });
+
+    child.on("error", (err) => {
+      console.error(`Error running ${command}:`, err);
+      reject(err);
+    });
+  });
 }
 
 export function PreprocessArgs(input: string): {
