@@ -11,6 +11,7 @@ const rl = createInterface({
   completer: handleCompletion,
 });
 
+let previousLine = "";
 function handleCompletion(line: string) {
   const matches = Array.from(Commands.keys())
     .filter((command) => command.startsWith(line))
@@ -32,6 +33,13 @@ function handleCompletion(line: string) {
 
   if (!matches.length && !executables.length) {
     process.stdout.write("\u0007"); // Ring bell if no matches
+    return [[], line];
+  }
+
+  if (line !== previousLine && [...matches, ...executables].length > 1) {
+    process.stdout.write("\u0007"); // Ring bell on first match
+    previousLine = line;
+    return [[], line];
   }
 
   return [[...matches, ...executables], line];
