@@ -1,14 +1,22 @@
 import { createInterface } from "readline";
 import { Commands, RegisterBuiltInCommands } from "./commands";
-import { PreprocessArgs, ProcessArgs, RunProgramIfExists } from "./helpers";
-import * as fs from "fs";
-import { PATH_SEPARATOR } from "./consts";
+import {
+  LoadInitialHistory,
+  PreprocessArgs,
+  ProcessArgs,
+  RunProgramIfExists,
+} from "./helpers";
+import fs from "fs";
+import { HISTORY_FILE, PATH_SEPARATOR } from "./consts";
 
+const initialHistory = LoadInitialHistory();
 const rl = createInterface({
   input: process.stdin,
   output: process.stdout,
   prompt: "$ ",
   completer: handleCompletion,
+  history: initialHistory,
+  historySize: 10,
 });
 
 let previousLine = "";
@@ -44,6 +52,22 @@ function handleCompletion(line: string) {
 
   return [[...matches, ...executables], line];
 }
+
+let previousHistoryLength = initialHistory.length;
+let historyState = initialHistory;
+rl.on("history", (history) => {
+  if (history.length === previousHistoryLength) {
+    return;
+  }
+
+  historyState = history;
+  previousHistoryLength = history.length;
+});
+
+rl.on("close", () => {
+  fs.writeFileSync(HISTORY_FILE, historyState.reverse().join("\n"));
+  process.exit(0);
+});
 
 RegisterBuiltInCommands();
 rl.prompt();

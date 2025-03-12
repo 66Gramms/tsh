@@ -3,7 +3,7 @@ import { existsSync, statSync } from "fs";
 import { join } from "path";
 import * as fs from "fs";
 import { Operator, Redirection } from "./types";
-import { PATH_SEPARATOR } from "./consts";
+import { HISTORY_FILE, PATH_SEPARATOR } from "./consts";
 
 export function FindProgram(command: string): string | null {
   const paths = (process.env.PATH || "").split(PATH_SEPARATOR);
@@ -147,7 +147,7 @@ export function FakeStdout(
     !outputRedirection ||
     !outputRedirection.outputFile
   ) {
-    console.log(input);
+    process.stdout.write(input);
   }
 
   if (outputRedirection?.fileDescriptor === 1 && outputRedirection.outputFile) {
@@ -161,4 +161,11 @@ export function FakeStdout(
   ) {
     fs.closeSync(fs.openSync(outputRedirection?.outputFile ?? "", "w"));
   }
+}
+
+export function LoadInitialHistory(): string[] {
+  if (!fs.existsSync(HISTORY_FILE)) {
+    return [];
+  }
+  return fs.readFileSync(HISTORY_FILE, "utf-8").split("\n").reverse();
 }
