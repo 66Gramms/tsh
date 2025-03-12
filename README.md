@@ -1,7 +1,4 @@
-Made based on
-["Build Your Own Shell" Challenge](https://app.codecrafters.io/courses/shell/overview).
-
-A POSIX compliant shell made in typescript. Capabilities include
+# A POSIX compliant shell made in typescript. Capabilities include
 
 - Interpreting shell commands
 - Running external programs and builtin commands like cd, pwd, echo and more.
@@ -18,4 +15,8 @@ A POSIX compliant shell made in typescript. Capabilities include
 - History
 - Support for piping
 - Prompt customization
+- [Test coverage](https://jestjs.io/)
 - Release on AUR
+
+*Made based on
+["Build Your Own Shell" Challenge](https://app.codecrafters.io/courses/shell/overview).*
