@@ -1,5 +1,8 @@
+import { HISTORY_FILE } from "./consts";
+import { GLOBAL_STATE } from "./global-state";
 import { FakeStdout, FindProgram } from "./helpers";
 import { Redirection } from "./types";
+import fs from "fs";
 
 export const Commands: Map<
   string,
@@ -43,8 +46,10 @@ function type(args: string[], outputRedirection?: Redirection) {
 function exit(args: string[], outputRedirection?: Redirection) {
   const exitCode = parseInt(args[0]);
   if (isNaN(exitCode)) {
+    fs.writeFileSync(HISTORY_FILE, GLOBAL_STATE.history.reverse().join("\n"));
     process.exit(0);
   }
+  fs.writeFileSync(HISTORY_FILE, GLOBAL_STATE.history.reverse().join("\n"));
   process.exit(exitCode);
 }
 
