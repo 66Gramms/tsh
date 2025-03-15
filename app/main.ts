@@ -1,25 +1,19 @@
 import { createInterface } from "readline";
 import { Commands, RegisterBuiltInCommands } from "./commands";
-import {
-  LoadInitialHistory,
-  PreprocessArgs,
-  ProcessArgs,
-  RunProgramIfExists,
-} from "./helpers";
+import { PreprocessArgs, ProcessArgs, RunProgramIfExists } from "./helpers";
 import fs from "fs";
 import { HISTORY_FILE, PATH_SEPARATOR } from "./consts";
+import { GLOBAL_STATE } from "./global-state";
 
-const initialHistory = LoadInitialHistory();
 const rl = createInterface({
   input: process.stdin,
   output: process.stdout,
   prompt: "$ ",
   completer: handleCompletion,
-  history: initialHistory,
+  history: GLOBAL_STATE.history,
   historySize: 10,
 });
 
-let previousLine = "";
 function handleCompletion(line: string) {
   const matches = Array.from(Commands.keys())
     .filter((command) => command.startsWith(line))
@@ -44,28 +38,30 @@ function handleCompletion(line: string) {
     return [[], line];
   }
 
-  if (line !== previousLine && [...matches, ...executables].length > 1) {
+  if (
+    line !== GLOBAL_STATE.previousLine &&
+    [...matches, ...executables].length > 1
+  ) {
     process.stdout.write("\u0007"); // Ring bell on first match
-    previousLine = line;
+    GLOBAL_STATE.previousLine = line;
     return [[], line];
   }
 
   return [[...matches, ...executables], line];
 }
 
-let previousHistoryLength = initialHistory.length;
-let historyState = initialHistory;
+let previousHistoryLength = GLOBAL_STATE.history.length;
 rl.on("history", (history) => {
   if (history.length === previousHistoryLength) {
     return;
   }
 
-  historyState = history;
+  GLOBAL_STATE.history = history;
   previousHistoryLength = history.length;
 });
 
 rl.on("close", () => {
-  fs.writeFileSync(HISTORY_FILE, historyState.reverse().join("\n"));
+  fs.writeFileSync(HISTORY_FILE, GLOBAL_STATE.history.reverse().join("\n"));
   process.exit(0);
 });
 
