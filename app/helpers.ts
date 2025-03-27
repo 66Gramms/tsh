@@ -138,28 +138,22 @@ export const ProcessArgs = (
   return { filteredArgs, inputFile, redirection };
 };
 
-export function FakeStdout(
+export function WriteOutput(
   input: string,
   outputRedirection?: Redirection
 ): void {
   if (
-    outputRedirection?.fileDescriptor !== 1 ||
     !outputRedirection ||
-    !outputRedirection.outputFile
+    !outputRedirection.outputFile ||
+    outputRedirection?.fileDescriptor !== 1
   ) {
-    process.stdout.write(input);
+    process.stdout.write(input + "\n");
   }
 
   if (outputRedirection?.fileDescriptor === 1 && outputRedirection.outputFile) {
     fs.writeFileSync(outputRedirection.outputFile, input + "\n", {
       flag: outputRedirection.appendMode ? "a" : "w",
     });
-  }
-  if (
-    outputRedirection?.fileDescriptor !== 1 &&
-    outputRedirection?.outputFile
-  ) {
-    fs.closeSync(fs.openSync(outputRedirection?.outputFile ?? "", "w"));
   }
 }
 

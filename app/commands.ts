@@ -1,6 +1,6 @@
 import { HISTORY_FILE } from "./consts";
 import { GLOBAL_STATE } from "./global-state";
-import { FakeStdout, FindProgram } from "./helpers";
+import { WriteOutput, FindProgram } from "./helpers";
 import { Redirection } from "./types";
 import fs from "fs";
 
@@ -26,20 +26,20 @@ enum BuiltInCommands {
 }
 
 function echo(args: string[], outputRedirection?: Redirection) {
-  FakeStdout(args.join(" "), outputRedirection);
+  WriteOutput(args.join(" "), outputRedirection);
 }
 
 function type(args: string[], outputRedirection?: Redirection) {
   if (Commands.has(args[0])) {
-    FakeStdout(`${args[0]} is a shell builtin`, outputRedirection);
+    WriteOutput(`${args[0]} is a shell builtin`, outputRedirection);
     return;
   }
 
   const programPath = FindProgram(args[0]);
   if (programPath) {
-    FakeStdout(`${args[0]} is ${programPath}`, outputRedirection);
+    WriteOutput(`${args[0]} is ${programPath}`, outputRedirection);
   } else {
-    FakeStdout(`${args[0]}: not found`, outputRedirection);
+    WriteOutput(`${args[0]}: not found`, outputRedirection);
   }
 }
 
@@ -54,7 +54,7 @@ function exit(args: string[], outputRedirection?: Redirection) {
 }
 
 function pwd(args: string[], outputRedirection?: Redirection) {
-  FakeStdout(process.cwd(), outputRedirection);
+  WriteOutput(process.cwd(), outputRedirection);
 }
 
 function cd(args: string[], outputRedirection?: Redirection) {
@@ -62,6 +62,6 @@ function cd(args: string[], outputRedirection?: Redirection) {
   try {
     process.chdir(args[0]);
   } catch (err) {
-    FakeStdout(`cd: ${args[0]}: No such file or directory`, outputRedirection);
+    WriteOutput(`cd: ${args[0]}: No such file or directory`, outputRedirection);
   }
 }
