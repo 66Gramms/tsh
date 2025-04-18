@@ -68,24 +68,36 @@ rl.on("close", () => {
 RegisterBuiltInCommands();
 rl.prompt();
 rl.on("line", async (input) => {
-  const { command, preprocessedArgs } = PreprocessArgs(input);
-  let commandToRun = Commands.get(command);
+  const preprocessedArgs = PreprocessArgs(input);
+  const commands = ProcessArgs(preprocessedArgs);
 
-  const { filteredArgs, inputFile, redirection } =
-    ProcessArgs(preprocessedArgs);
-
-  if (commandToRun) {
-    commandToRun(filteredArgs, redirection);
-  } else {
-    const result = await RunProgramIfExists(
-      command,
-      filteredArgs,
-      inputFile,
-      redirection
-    );
-    if (!result) {
-      process.stdout.write(`${command}: command not found\n`);
+  let pipeInput = "";
+  commands.forEach(async (command) => {
+    let commandToRun = Commands.get(command.filteredArgs.pop() as string);
+    if (commandToRun) {
+      pipeInput = commandToRun(command.filteredArgs, command.redirection);
+    } else {
+      const result = RunProgramIfExists(
+        command.filteredArgs[0],
+        command.filteredArgs.slice(1),
+        pipeInput,
+        command.redirection
+      ).then(
+        (result) => {
+          if (typeof result === "string") {
+            pipeInput = result;
+          }
+        },
+        (err) => {
+          if (err === true) {
+            process.stdout.write(
+              `${command.filteredArgs[0]}: command not found\n`
+            );
+          }
+        }
+      );
+      await result;
     }
-  }
+  });
   rl.prompt();
 });

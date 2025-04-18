@@ -6,7 +6,7 @@ import fs from "fs";
 
 export const Commands: Map<
   string,
-  (args: string[], outputRedirection?: Redirection) => void
+  (args: string[], outputRedirection?: Redirection) => string
 > = new Map();
 
 export function RegisterBuiltInCommands() {
@@ -25,29 +25,28 @@ enum BuiltInCommands {
   cd = "cd",
 }
 
-function echo(args: string[], outputRedirection?: Redirection) {
-  WriteOutput(args.join(" "), outputRedirection);
+function echo(args: string[], outputRedirection?: Redirection): string {
+  return WriteOutput(args.join(" "), outputRedirection);
 }
 
-function type(args: string[], outputRedirection?: Redirection) {
+function type(args: string[], outputRedirection?: Redirection): string {
   if (!args.length) {
-    return;
+    return "";
   }
 
   if (Commands.has(args[0])) {
-    WriteOutput(`${args[0]} is a shell builtin`, outputRedirection);
-    return;
+    return WriteOutput(`${args[0]} is a shell builtin`, outputRedirection);
   }
 
   const programPath = FindProgram(args[0]);
   if (programPath) {
-    WriteOutput(`${args[0]} is ${programPath}`, outputRedirection);
+    return WriteOutput(`${args[0]} is ${programPath}`, outputRedirection);
   } else {
-    WriteOutput(`${args[0]}: not found`, outputRedirection);
+    return WriteOutput(`${args[0]}: not found`, outputRedirection);
   }
 }
 
-function exit(args: string[], outputRedirection?: Redirection) {
+function exit(args: string[], outputRedirection?: Redirection): string {
   const exitCode = parseInt(args[0]);
   if (isNaN(exitCode)) {
     fs.writeFileSync(HISTORY_FILE, GLOBAL_STATE.history.reverse().join("\n"));
@@ -57,21 +56,26 @@ function exit(args: string[], outputRedirection?: Redirection) {
   process.exit(exitCode);
 }
 
-function pwd(args: string[], outputRedirection?: Redirection) {
-  WriteOutput(process.cwd(), outputRedirection);
+function pwd(args: string[], outputRedirection?: Redirection): string {
+  return WriteOutput(process.cwd(), outputRedirection);
 }
 
-function cd(args: string[], outputRedirection?: Redirection) {
+function cd(args: string[], outputRedirection?: Redirection): string {
   if (!args.length) {
     args[0] = process.env.HOME || "";
     if (!args[0]) {
-      return;
+      return "";
     }
   }
   args[0] = args[0].replace("~", process.env.HOME || "");
   try {
     process.chdir(args[0]);
   } catch (err) {
-    WriteOutput(`cd: ${args[0]}: No such file or directory`, outputRedirection);
+    return WriteOutput(
+      `cd: ${args[0]}: No such file or directory`,
+      outputRedirection
+    );
   }
+
+  return "";
 }

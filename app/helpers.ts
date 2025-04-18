@@ -2,7 +2,7 @@ import { spawn } from "child_process";
 import { existsSync, statSync } from "fs";
 import { join } from "path";
 import * as fs from "fs";
-import { Operator, Redirection } from "./types";
+import { Command, Operator, Redirection } from "./types";
 import { HISTORY_FILE, PATH_SEPARATOR } from "./consts";
 
 export function FindProgram(command: string): string | null {
@@ -19,22 +19,21 @@ export function FindProgram(command: string): string | null {
 export function RunProgramIfExists(
   command: string,
   args: string[],
-  inputFile: string,
+  input: string,
   redirection: Redirection
-): Promise<boolean> {
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const programPath = FindProgram(command);
     if (!programPath) {
-      return resolve(false);
+      reject(true);
     }
 
     const child = spawn(command, args, {
       stdio: ["pipe", "pipe", "pipe"], // Allow piping
     });
 
-    if (inputFile) {
-      const inputData = require("fs").readFileSync(inputFile);
-      child.stdin.write(inputData);
+    if (input) {
+      child.stdin.write(input);
       child.stdin.end();
     }
 
@@ -43,7 +42,7 @@ export function RunProgramIfExists(
 
     child.stdout.on("data", (data) => {
       stdoutData += data.toString();
-      if (redirection.fileDescriptor !== 1) {
+      if (redirection.fileDescriptor !== 1 && !redirection.pipe) {
         process.stdout.write(data);
       }
     });
@@ -65,7 +64,9 @@ export function RunProgramIfExists(
           }
         );
       }
-      resolve(true);
+      if (redirection.pipe) {
+        resolve(stdoutData);
+      }
     });
 
     child.on("error", (err) => {
@@ -75,28 +76,23 @@ export function RunProgramIfExists(
   });
 }
 
-export function PreprocessArgs(input: string): {
-  command: string;
-  preprocessedArgs: (string | { op: string })[];
-} {
+export function PreprocessArgs(input: string): (string | { op: string })[] {
   var parse = require("shell-quote/parse");
   var preprocessedArgs: [string | { op: string }] = parse(input);
-
-  const command = preprocessedArgs[0] as string;
-  preprocessedArgs.shift();
-  return { command, preprocessedArgs };
+  return preprocessedArgs;
 }
 
-export const ProcessArgs = (
-  args: (string | Operator)[]
-): { filteredArgs: string[]; inputFile: string; redirection: Redirection } => {
-  let inputFile = "";
-  let redirection: Redirection = {
-    outputFile: "",
-    appendMode: false,
-    fileDescriptor: -1,
+export const ProcessArgs = (args: (string | Operator)[]): Command[] => {
+  let processedCommands: Command[] = [];
+  let currentCommand: Command = {
+    filteredArgs: [],
+    input: "",
+    redirection: {
+      outputFile: "",
+      appendMode: false,
+      fileDescriptor: -1,
+    },
   };
-  const filteredArgs: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -105,49 +101,62 @@ export const ProcessArgs = (
     if (operator) {
       const fileDescriptor = parseInt(args[i - 1] as string);
       if (!isNaN(fileDescriptor)) {
-        redirection.fileDescriptor = fileDescriptor;
-        filteredArgs.splice(
-          filteredArgs.findIndex((arg) => arg === args[i - 1]),
+        currentCommand.redirection.fileDescriptor = fileDescriptor;
+        currentCommand.filteredArgs.splice(
+          currentCommand.filteredArgs.findIndex((arg) => arg === args[i - 1]),
           1
         );
       } else {
-        redirection.fileDescriptor = 1;
+        currentCommand.redirection.fileDescriptor = 1;
       }
       switch (operator) {
         case ">":
-          redirection.outputFile = args[i + 1] as string;
+          currentCommand.redirection.outputFile = args[i + 1] as string;
           i++;
           break;
         case ">>":
-          redirection.outputFile = args[i + 1] as string;
-          redirection.appendMode = true;
+          currentCommand.redirection.outputFile = args[i + 1] as string;
+          currentCommand.redirection.appendMode = true;
           i++;
           break;
         case "<":
-          inputFile = args[i + 1] as string;
+          currentCommand.input = require("fs").readFileSync(
+            args[i + 1] as string
+          );
           i++;
           break;
+        case "|":
+          processedCommands.push(currentCommand);
+          ProcessArgs(args.slice(i + 1)).forEach((cmd) => {
+            processedCommands.push(cmd);
+          });
         default:
           break;
       }
     } else {
-      filteredArgs.push(arg as string);
+      currentCommand.filteredArgs.push(arg as string);
     }
   }
-
-  return { filteredArgs, inputFile, redirection };
+  processedCommands.push(currentCommand);
+  return processedCommands;
 };
 
 export function WriteOutput(
   input: string,
   outputRedirection?: Redirection
-): void {
+): string {
   if (
     !outputRedirection ||
     !outputRedirection.outputFile ||
-    outputRedirection?.fileDescriptor !== 1
+    outputRedirection?.fileDescriptor !== 1 ||
+    !outputRedirection?.pipe
   ) {
     process.stdout.write(input + "\n");
+    return "";
+  }
+
+  if (outputRedirection?.pipe) {
+    return outputRedirection.output ?? "";
   }
 
   if (outputRedirection?.fileDescriptor === 1 && outputRedirection.outputFile) {
@@ -155,6 +164,7 @@ export function WriteOutput(
       flag: outputRedirection.appendMode ? "a" : "w",
     });
   }
+  return "";
 }
 
 export function LoadInitialHistory(): string[] {
