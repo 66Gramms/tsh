@@ -91,7 +91,7 @@ describe("Built-in commands' tests", () => {
 
     replProcess.stdin!.write("type\n");
     output = await waitForOutput();
-    expect(output.split("\n")[0]).toContain("Usage: type <command>");
+    expect(output.split("\n")[0]).toBe("$ ");
   });
 
   test("exit command", async () => {
@@ -105,6 +105,7 @@ describe("Built-in commands' tests", () => {
     );
     replWithCode.stdin!.write("exit 42\n");
     await exitPromise;
+    expect(replWithCode.exitCode).toBe(42);
   });
 
   test("pwd command", async () => {
@@ -116,7 +117,7 @@ describe("Built-in commands' tests", () => {
 
   test("cd command", async () => {
     const homeDir = os.homedir();
-    const parentDir = path.resolve("..");
+    const parentDir = path.resolve(homeDir, "..");
 
     replProcess.stdin!.write("cd\n");
     await waitForOutput();

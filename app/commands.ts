@@ -30,6 +30,10 @@ function echo(args: string[], outputRedirection?: Redirection) {
 }
 
 function type(args: string[], outputRedirection?: Redirection) {
+  if (!args.length) {
+    return;
+  }
+
   if (Commands.has(args[0])) {
     WriteOutput(`${args[0]} is a shell builtin`, outputRedirection);
     return;
@@ -58,6 +62,12 @@ function pwd(args: string[], outputRedirection?: Redirection) {
 }
 
 function cd(args: string[], outputRedirection?: Redirection) {
+  if (!args.length) {
+    args[0] = process.env.HOME || "";
+    if (!args[0]) {
+      return;
+    }
+  }
   args[0] = args[0].replace("~", process.env.HOME || "");
   try {
     process.chdir(args[0]);
