@@ -68,12 +68,11 @@ rl.on("close", () => {
 RegisterBuiltInCommands();
 rl.prompt();
 rl.on("line", async (input) => {
-  const preprocessedArgs = PreprocessArgs(input);
-  const commands = ProcessArgs(preprocessedArgs);
+  const processedCommands = ProcessArgs(PreprocessArgs(input));
 
   let pipeInput = "";
-  commands.forEach(async (command) => {
-    let commandToRun = Commands.get(command.filteredArgs.pop() as string);
+  processedCommands.forEach(async (command) => {
+    let commandToRun = Commands.get(command.filteredArgs.splice(0, 1)[0]);
     if (commandToRun) {
       pipeInput = commandToRun(command.filteredArgs, command.redirection);
     } else {

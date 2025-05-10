@@ -146,9 +146,9 @@ export function WriteOutput(
   outputRedirection?: Redirection
 ): string {
   if (
-    !outputRedirection ||
-    !outputRedirection.outputFile ||
-    outputRedirection?.fileDescriptor !== 1 ||
+    (!outputRedirection ||
+      !outputRedirection.outputFile ||
+      outputRedirection?.fileDescriptor !== 1) &&
     !outputRedirection?.pipe
   ) {
     process.stdout.write(input + "\n");
