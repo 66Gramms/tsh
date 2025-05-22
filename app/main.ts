@@ -1,9 +1,10 @@
 import { createInterface } from "readline";
-import { Commands, RegisterBuiltInCommands } from "./commands";
-import { PreprocessArgs, ProcessArgs, RunProgramIfExists } from "./helpers";
+import { PreprocessArgs, ProcessArgs } from "./helpers";
 import fs from "fs";
 import { HISTORY_FILE, PATH_SEPARATOR } from "./consts";
 import { GLOBAL_STATE } from "./global-state";
+import { Builtin } from "./commands/Builtin";
+import { Operation } from "./types";
 
 const rl = createInterface({
   input: process.stdin,
@@ -15,7 +16,7 @@ const rl = createInterface({
 });
 
 function handleCompletion(line: string) {
-  const matches = Array.from(Commands.keys())
+  const matches = Array.from(Builtin.builtins.keys())
     .filter((command) => command.startsWith(line))
     .map((input) => `${input} `);
 
@@ -65,38 +66,49 @@ rl.on("close", () => {
   process.exit(0);
 });
 
-RegisterBuiltInCommands();
 rl.prompt();
-rl.on("line", async (input) => {
+rl.on("line", async (input: string) => {
   const processedCommands = ProcessArgs(PreprocessArgs(input));
 
-  let pipeInput = "";
-  processedCommands.forEach(async (command) => {
-    let commandToRun = Commands.get(command.filteredArgs.splice(0, 1)[0]);
-    if (commandToRun) {
-      pipeInput = commandToRun(command.filteredArgs, command.redirection);
-    } else {
-      const result = RunProgramIfExists(
-        command.filteredArgs[0],
-        command.filteredArgs.slice(1),
-        pipeInput,
-        command.redirection
-      ).then(
-        (result) => {
-          if (typeof result === "string") {
-            pipeInput = result;
-          }
-        },
-        (err) => {
-          if (err === true) {
-            process.stdout.write(
-              `${command.filteredArgs[0]}: command not found\n`
-            );
-          }
-        }
-      );
-      await result;
+  for (let i = 0; i < processedCommands.length; i++) {
+    let command = processedCommands[i];
+    try {
+      await command.execute();
+    } catch (err) {
+      if (err instanceof Error) {
+        process.stdout.write(err.message + "\n");
+      } else {
+        process.stdout.write(String(err) + "\n");
+      }
+      break;
     }
-  });
+
+    switch (command.operationMode) {
+      case Operation.Default:
+        if (command.standardStreams[1].length)
+          process.stdout.write(command.standardStreams[1]);
+        if (command.standardStreams[2].length)
+          process.stderr.write(command.standardStreams[2]);
+        break;
+      case Operation.Pipe:
+        let nextCommand = processedCommands[i + 1];
+        nextCommand.standardStreams[0] = command.standardStreams[1];
+        break;
+      case Operation.Redirect:
+        fs.writeFileSync(command.redirectFilePath, command.standardStreams[1]);
+        break;
+      case Operation.Append:
+        fs.appendFileSync(
+          command.redirectFilePath,
+          command.standardStreams[1],
+          "utf-8"
+        );
+      case Operation.RedirectInput:
+        const fileContent = fs.readFileSync(command.redirectFilePath, "utf-8");
+        command.standardStreams[0] = fileContent;
+        break;
+    }
+  }
+
   rl.prompt();
 });
