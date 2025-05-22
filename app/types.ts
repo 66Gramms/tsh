@@ -2,8 +2,10 @@ export type Operator = {
   op: string;
 };
 
-export interface Redirection {
-  outputFile: string;
-  appendMode: boolean;
-  fileDescriptor: number;
+export enum Operation {
+  Default = "",
+  Pipe = "|",
+  Redirect = ">",
+  Append = ">>",
+  RedirectInput = "<",
 }
