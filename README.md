@@ -1,10 +1,11 @@
-# A (mostly) POSIX compliant shell made in typescript. Capabilities include
+# A custom shell made in typescript. Capabilities include
 
 - Interpreting shell commands
 - Running external programs and builtin commands like cd, pwd, echo and more.
 - Redirecting standard streams
 - Autocompletion on tab of builtins and external programs
 - History
+- Piping
 
 # How to run
 
@@ -13,7 +14,6 @@
 
 # Future plans
 
-- Support for piping
 - Prompt customization
 - [Test coverage](https://jestjs.io/)
 - Release on AUR
