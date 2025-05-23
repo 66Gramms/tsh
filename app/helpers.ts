@@ -59,16 +59,19 @@ export function ProcessArgs(input: (string | { op: string })[]): Command[] {
         case Operation.Append:
           currentCommand.operationMode = Operation.Append;
           currentCommand.redirectFilePath = input[i + 1] as string;
+          currentCommand.args = currentArgs.slice(1);
           i++;
           break;
         case Operation.Redirect:
           currentCommand.operationMode = Operation.Redirect;
           currentCommand.redirectFilePath = input[i + 1] as string;
+          currentCommand.args = currentArgs.slice(1);
           i++;
           break;
         case Operation.RedirectInput:
           currentCommand.operationMode = Operation.RedirectInput;
           currentCommand.redirectFilePath = input[i + 1] as string;
+          currentCommand.args = currentArgs.slice(1);
           i++;
           break;
         default:
